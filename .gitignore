@@ -1,0 +1,65 @@
+# Miscellaneous & Temp Files
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+hs_err_pid*
+run.log
+
+# IntelliJ / Android Studio / IDEs
+*.iml
+*.ipr
+*.iws
+.idea/
+.vscode/
+
+# Flutter & Dart artifacts
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+/coverage/
+
+# Android Local & Sensitive Properties
+android/local.properties
+**/android/local.properties
+android/key.properties
+**/android/key.properties
+*.jks
+*.keystore
+*.p12
+*.key
+*.mobileprovision
+
+# Symbolication & Obfuscation mappings
+app.*.symbols
+app.*.map.json
+
+# Android Studio build output folders
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# Node & Cloud Functions
+node_modules/
+**/node_modules/
+npm-debug.log
+firebase-debug.log
+firebase-debug.*.log
+.env
+.env.*
+
+# Widget Preview
+.widget_preview/

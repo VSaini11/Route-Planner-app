@@ -1,0 +1,28 @@
+<!-- 1) Paste inside <manifest> in android/app/src/main/AndroidManifest.xml, ABOVE <application> -->
+<uses-permission android:name="android.permission.INTERNET"/>
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+<uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"/>
+<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+<uses-permission android:name="android.permission.CAMERA"/>
+<uses-feature android:name="android.hardware.camera" android:required="false"/>
+<uses-feature android:name="android.hardware.location.gps" android:required="false"/>
+
+<!-- 2) Paste inside <manifest>, next to <application> (lets "Navigate" open Google Maps) -->
+<queries>
+  <intent>
+    <action android:name="android.intent.action.VIEW"/>
+    <data android:scheme="https"/>
+  </intent>
+</queries>
+
+<!--
+3) android/app/build.gradle(.kts):
+     minSdk = 23
+   Make sure the Google services plugin is applied (flutterfire configure normally does it):
+     id("com.google.gms.google-services")
+   Change applicationId to your own, e.g. com.yourcompany.fieldroute
+   (and use the same id in userAgentPackageName inside the map layers).
+-->

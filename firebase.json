@@ -1,0 +1,42 @@
+{
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
+    }
+  ],
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "nz-route-plannner",
+          "appId": "1:746433601841:android:5e4e0086923a4533361010",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "nz-route-plannner",
+          "configurations": {
+            "android": "1:746433601841:android:5e4e0086923a4533361010",
+            "ios": "1:746433601841:ios:6de5f2c88cb46f69361010",
+            "web": "1:746433601841:web:f2f061fc607da956361010"
+          }
+        }
+      }
+    }
+  }
+}

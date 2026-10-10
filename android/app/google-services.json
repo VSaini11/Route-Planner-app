@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "746433601841",
+    "project_id": "nz-route-plannner",
+    "storage_bucket": "nz-route-plannner.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:746433601841:android:5e4e0086923a4533361010",
+        "android_client_info": {
+          "package_name": "com.yourcompany.fieldroute"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAJhl0p7zvQgsKtP8VXz35iMhfZir34qpw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

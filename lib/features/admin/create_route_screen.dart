@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/geo.dart';
+import '../../core/theme.dart';
 import '../../data/models/new_stop.dart';
 import '../../data/models/user_profile.dart';
 import '../../providers.dart';
@@ -43,9 +44,12 @@ class _CreateRouteScreenState extends ConsumerState<CreateRouteScreen> {
       if (!mounted) return;
       setState(() => _stops.clear());
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Route for ${_worker!.name} on ${dateKey(_date)} sent')));
+          SnackBar(
+            content: Text('✓ Route for ${_worker!.name} on ${dateKey(_date)} successfully dispatched!'),
+            backgroundColor: kGreen,
+          ));
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e'), backgroundColor: kRed));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -55,10 +59,10 @@ class _CreateRouteScreenState extends ConsumerState<CreateRouteScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        icon: const Icon(Icons.delete_forever, color: Colors.red, size: 36),
-        title: const Text('Delete Route?'),
+        icon: const Icon(Icons.delete_forever_rounded, color: kRed, size: 38),
+        title: const Text('Delete Existing Route?'),
         content: Text(
-          'Are you sure you want to delete the planned route for $workerName on $dateStr?\n\nThis will remove all planned stops for this date.',
+          'Are you sure you want to delete the planned route for $workerName on $dateStr?\n\nThis will permanently delete all associated stops.',
         ),
         actions: [
           TextButton(
@@ -66,9 +70,9 @@ class _CreateRouteScreenState extends ConsumerState<CreateRouteScreen> {
             child: const Text('Cancel'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(backgroundColor: kRed),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
+            child: const Text('Delete Route'),
           ),
         ],
       ),
@@ -80,11 +84,11 @@ class _CreateRouteScreenState extends ConsumerState<CreateRouteScreen> {
         await ref.read(routeRepoProvider).deleteRoute(routeId);
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Route for $workerName on $dateStr deleted')),
+          SnackBar(content: Text('Route for $workerName on $dateStr deleted'), backgroundColor: kGreen),
         );
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e'), backgroundColor: kRed));
         }
       } finally {
         if (mounted) setState(() => _busy = false);
@@ -96,6 +100,7 @@ class _CreateRouteScreenState extends ConsumerState<CreateRouteScreen> {
   Widget build(BuildContext context) {
     final workers = ref.watch(workersProvider);
     final dateStr = dateKey(_date);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final existingPlanAsync = _worker == null
         ? null
         : ref.watch(workerRouteProvider((workerId: _worker!.uid, date: dateStr)));
@@ -103,48 +108,78 @@ class _CreateRouteScreenState extends ConsumerState<CreateRouteScreen> {
     return Column(children: [
       Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(children: [
-          workers.when(
-            loading: () => const LinearProgressIndicator(),
-            error: (e, _) => Text('$e'),
-            data: (list) {
-              if (list.isEmpty) {
-                return const Card(
-                  child: Padding(
-                    padding: EdgeInsets.all(12),
-                    child: Row(
-                      children: [
-                        Icon(Icons.info_outline, size: 20),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'No workers registered yet. Workers can register using the app.',
-                            style: TextStyle(fontSize: 13),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }
-              final selectedUid = list.any((w) => w.uid == _worker?.uid) ? _worker?.uid : null;
-              return DropdownButtonFormField<String>(
-                initialValue: selectedUid,
-                decoration: const InputDecoration(labelText: 'Assign to worker'),
-                items: [for (final w in list) DropdownMenuItem(value: w.uid, child: Text(w.name))],
-                onChanged: (id) {
-                  if (id == null) return;
-                  setState(() => _worker = list.firstWhere((w) => w.uid == id));
-                },
-              );
-            },
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF131D2E) : Colors.white,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+            ),
           ),
-          const SizedBox(height: 10),
-          Row(children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                icon: const Icon(Icons.calendar_month),
-                label: Text(DateFormat('EEE, d MMM yyyy').format(_date)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'DISPATCH CONFIGURATION',
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 11,
+                  letterSpacing: 0.8,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 14),
+              workers.when(
+                loading: () => const LinearProgressIndicator(),
+                error: (e, _) => Text('$e'),
+                data: (list) {
+                  if (list.isEmpty) {
+                    return Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.info_outline, size: 20),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'No registered workers. Workers can register using the app.',
+                              style: TextStyle(fontSize: 12.5),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  final selectedUid = list.any((w) => w.uid == _worker?.uid) ? _worker?.uid : null;
+                  return DropdownButtonFormField<String>(
+                    initialValue: selectedUid,
+                    decoration: const InputDecoration(
+                      labelText: 'Assign to Field Worker',
+                      prefixIcon: Icon(Icons.person_outline_rounded, size: 20),
+                    ),
+                    items: [for (final w in list) DropdownMenuItem(value: w.uid, child: Text(w.name, style: const TextStyle(fontWeight: FontWeight.w600)))],
+                    onChanged: (id) {
+                      if (id == null) return;
+                      setState(() => _worker = list.firstWhere((w) => w.uid == id));
+                    },
+                  );
+                },
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
+                ),
+                icon: const Icon(Icons.calendar_month_outlined, size: 20),
+                label: Text(
+                  DateFormat('EEEE, d MMMM yyyy').format(_date),
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
                 onPressed: () async {
                   final d = await showDatePicker(
                     context: context,
@@ -155,67 +190,90 @@ class _CreateRouteScreenState extends ConsumerState<CreateRouteScreen> {
                   if (d != null) setState(() => _date = d);
                 },
               ),
-            ),
-          ]),
-          if (existingPlanAsync != null) ...[
-            existingPlanAsync.when(
-              data: (plan) {
-                if (plan == null) return const SizedBox.shrink();
-                return Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: Card(
-                    color: Theme.of(context).colorScheme.errorContainer,
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.warning_amber_rounded, color: Colors.red),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Route exists for this date',
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                                ),
-                                Text(
-                                  '${_worker?.name} already has a route on $dateStr.',
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                              ],
+              if (existingPlanAsync != null) ...[
+                existingPlanAsync.when(
+                  data: (plan) {
+                    if (plan == null) return const SizedBox.shrink();
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 14),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: kRed.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: kRed.withValues(alpha: 0.3)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.warning_amber_rounded, color: kRed, size: 22),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Active Route Assigned',
+                                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kRed),
+                                  ),
+                                  Text(
+                                    '${_worker?.name} already has a route for $dateStr.',
+                                    style: const TextStyle(fontSize: 11.5),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                          FilledButton.icon(
-                            style: FilledButton.styleFrom(
-                              backgroundColor: Colors.red,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            FilledButton.icon(
+                              style: FilledButton.styleFrom(
+                                backgroundColor: kRed,
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                minimumSize: const Size(0, 36),
+                              ),
+                              icon: const Icon(Icons.delete_outline_rounded, size: 16),
+                              label: const Text('Delete', style: TextStyle(fontSize: 12)),
+                              onPressed: _busy
+                                  ? null
+                                  : () => _deleteExistingRoute(plan.id, _worker!.name, dateStr),
                             ),
-                            icon: const Icon(Icons.delete_outline, size: 18),
-                            label: const Text('Delete', style: TextStyle(fontSize: 12)),
-                            onPressed: _busy
-                                ? null
-                                : () => _deleteExistingRoute(plan.id, _worker!.name, dateStr),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
+                    );
+                  },
+                  loading: () => const Padding(
+                    padding: EdgeInsets.only(top: 10),
+                    child: LinearProgressIndicator(),
                   ),
-                );
-              },
-              loading: () => const Padding(
-                padding: EdgeInsets.only(top: 8),
-                child: LinearProgressIndicator(),
-              ),
-              error: (_, __) => const SizedBox.shrink(),
-            ),
-          ],
-        ]),
+                  error: (_, __) => const SizedBox.shrink(),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
       Expanded(
         child: _stops.isEmpty
-            ? const Center(child: Text('No stops yet. Tap "Add stop".'))
+            ? Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: kPrimary.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.add_location_alt_outlined, size: 36, color: kPrimary),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text('No Stops Added Yet', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Tap "+ Add Stop" below to build the sequence',
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12.5),
+                    ),
+                  ],
+                ),
+              )
             : ReorderableListView.builder(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 itemCount: _stops.length,
@@ -225,16 +283,46 @@ class _CreateRouteScreenState extends ConsumerState<CreateRouteScreen> {
                 }),
                 itemBuilder: (_, i) {
                   final s = _stops[i];
-                  return Card(
+                  return Container(
                     key: ValueKey(s),
+                    margin: const EdgeInsets.only(bottom: 10),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF131D2E) : Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+                      ),
+                    ),
                     child: ListTile(
-                      leading: CircleAvatar(child: Text('${i + 1}')),
-                      title: Text(s.name, style: const TextStyle(fontWeight: FontWeight.w700)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                      leading: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: kPrimary.withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Text(
+                            '${i + 1}',
+                            style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimary, fontSize: 13),
+                          ),
+                        ),
+                      ),
+                      title: Text(s.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
                       subtitle: Text(
-                          '${s.radiusM.round()} m radius • ₹${s.target.round()} • ${s.tasks.length} tasks'),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete_outline),
-                        onPressed: () => setState(() => _stops.removeAt(i)),
+                        '${s.radiusM.round()}m radius • Target: ₹${s.target.round()} • ${s.tasks.length} tasks',
+                        style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline_rounded, color: kRed, size: 20),
+                            onPressed: () => setState(() => _stops.removeAt(i)),
+                          ),
+                          const Icon(Icons.drag_indicator_rounded, color: Colors.grey, size: 20),
+                        ],
                       ),
                     ),
                   );
@@ -242,22 +330,51 @@ class _CreateRouteScreenState extends ConsumerState<CreateRouteScreen> {
               ),
       ),
       SafeArea(
-        child: Padding(
+        child: Container(
           padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF0F172A) : Colors.white,
+            border: Border(
+              top: BorderSide(
+                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+              ),
+            ),
+          ),
           child: Row(children: [
             Expanded(
               child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(0, 50),
+                ),
                 onPressed: _add,
-                icon: const Icon(Icons.add_location_alt_outlined),
-                label: const Text('Add stop'),
+                icon: const Icon(Icons.add_location_alt_outlined, size: 18),
+                label: const Text('Add Stop'),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: FilledButton.icon(
-                onPressed: (_busy || _worker == null || _stops.isEmpty) ? null : _send,
-                icon: const Icon(Icons.send),
-                label: const Text('Send route'),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF3B82F6), Color(0xFF2563EB)],
+                  ),
+                ),
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    minimumSize: const Size(0, 50),
+                  ),
+                  onPressed: (_busy || _worker == null || _stops.isEmpty) ? null : _send,
+                  icon: _busy
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Icon(Icons.send_rounded, color: Colors.white, size: 18),
+                  label: Text(
+                    _busy ? 'Dispatching...' : 'Dispatch Route',
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+                  ),
+                ),
               ),
             ),
           ]),

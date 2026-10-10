@@ -40,8 +40,12 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
   @override
   Widget build(BuildContext context) {
     final pt = _point;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Tap the client location')),
+      appBar: AppBar(
+        title: const Text('Select Location on Map', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
+      ),
       body: Stack(children: [
         FlutterMap(
           mapController: _c,
@@ -61,8 +65,8 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                   point: pt,
                   radius: widget.radiusM,
                   useRadiusInMeter: true,
-                  color: kBlue.withValues(alpha: 0.15),
-                  borderColor: kBlue,
+                  color: kPrimary.withValues(alpha: 0.18),
+                  borderColor: kPrimary,
                   borderStrokeWidth: 2,
                 ),
               ]),
@@ -70,10 +74,18 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
               MarkerLayer(markers: [
                 Marker(
                   point: pt,
-                  width: 48,
-                  height: 48,
+                  width: 52,
+                  height: 52,
                   alignment: Alignment.topCenter,
-                  child: const Icon(Icons.location_on, color: kRed, size: 48),
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(color: Colors.black38, blurRadius: 10, offset: Offset(0, 4)),
+                      ],
+                    ),
+                    child: const Icon(Icons.location_on_rounded, color: kRed, size: 48),
+                  ),
                 ),
               ]),
             const RichAttributionWidget(
@@ -83,22 +95,89 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
           ],
         ),
         Positioned(
+          top: 14,
+          left: 14,
+          right: 14,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF0F172A).withValues(alpha: 0.9) : Colors.white.withValues(alpha: 0.95),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+              ),
+              boxShadow: const [
+                BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 4)),
+              ],
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.touch_app_rounded, color: kPrimary, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    pt == null
+                        ? 'Tap anywhere on the map to place site marker'
+                        : 'GPS: ${pt.latitude.toStringAsFixed(5)}, ${pt.longitude.toStringAsFixed(5)} (${widget.radiusM.round()}m)',
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        Positioned(
           right: 16,
           bottom: 100,
           child: FloatingActionButton(
             heroTag: 'myloc',
+            backgroundColor: isDark ? const Color(0xFF131D2E) : Colors.white,
+            foregroundColor: kPrimary,
+            elevation: 4,
             onPressed: _myLocation,
-            child: const Icon(Icons.my_location),
+            child: const Icon(Icons.my_location_rounded),
           ),
         ),
         Positioned(
           left: 16,
           right: 16,
           bottom: 24,
-          child: FilledButton.icon(
-            onPressed: pt == null ? null : () => Navigator.pop(context, pt),
-            icon: const Icon(Icons.check),
-            label: Text(pt == null ? 'Tap the map to choose' : 'Use this location'),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              gradient: pt == null
+                  ? null
+                  : const LinearGradient(
+                      colors: [Color(0xFF3B82F6), Color(0xFF2563EB)],
+                    ),
+              boxShadow: pt == null
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: kPrimary.withValues(alpha: 0.35),
+                        blurRadius: 14,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+            ),
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: pt == null ? Colors.grey.withValues(alpha: 0.3) : Colors.transparent,
+                shadowColor: Colors.transparent,
+                minimumSize: const Size.fromHeight(52),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+              onPressed: pt == null ? null : () => Navigator.pop(context, pt),
+              icon: Icon(Icons.check_rounded, color: pt == null ? Colors.grey : Colors.white),
+              label: Text(
+                pt == null ? 'Tap the map to set coordinate' : 'Confirm & Use Selected Coordinate',
+                style: TextStyle(
+                  color: pt == null ? Colors.grey : Colors.white,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
+                ),
+              ),
+            ),
           ),
         ),
       ]),

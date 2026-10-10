@@ -42,7 +42,6 @@ class _StopCardState extends ConsumerState<StopCard> {
   @override
   void initState() {
     super.initState();
-    // Refresh the live "Worked" timer while checked in.
     _tick = Timer.periodic(const Duration(seconds: 30), (_) {
       if (mounted && s.isCheckedIn) setState(() {});
     });
@@ -139,104 +138,215 @@ class _StopCardState extends ConsumerState<StopCard> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final dist = _dist;
     final doneTasks = s.tasks.where((t) => t.done).length;
 
-    final statusColor = s.isDone ? kGreen : (s.isCheckedIn ? kBlue : cs.outline);
-    final statusLabel = s.isDone ? 'Done' : (s.isCheckedIn ? 'In progress' : 'Pending');
+    final statusColor = s.isDone ? kGreen : (s.isCheckedIn ? kPrimary : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)));
+    final statusBg = s.isDone
+        ? kGreen.withValues(alpha: 0.15)
+        : (s.isCheckedIn ? kPrimary.withValues(alpha: 0.15) : (isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0)));
+    final statusLabel = s.isDone ? 'COMPLETED' : (s.isCheckedIn ? 'IN PROGRESS' : 'PENDING');
 
-    return Card(
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF131D2E) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: s.isCheckedIn
+              ? kPrimary.withValues(alpha: 0.6)
+              : (isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0)),
+          width: s.isCheckedIn ? 1.5 : 1,
+        ),
+        boxShadow: [
+          if (s.isCheckedIn)
+            BoxShadow(
+              color: kPrimary.withValues(alpha: 0.12),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+        ],
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(16),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            _chip('Route 1', cs.primaryContainer, cs.onPrimaryContainer),
-            const SizedBox(width: 6),
-            Text('STOP #${widget.number}',
-                style: TextStyle(color: cs.onSurfaceVariant, fontWeight: FontWeight.w700, fontSize: 11)),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [kPrimary.withValues(alpha: 0.15), kAccent.withValues(alpha: 0.15)],
+                ),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                'STOP #${widget.number}',
+                style: const TextStyle(
+                  color: kPrimary,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 11.5,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
             const Spacer(),
-            _chip(statusLabel, statusColor.withValues(alpha: 0.12), statusColor),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: statusBg,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: statusColor,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    statusLabel,
+                    style: TextStyle(
+                      color: statusColor,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 11,
+                      letterSpacing: 0.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(width: 4),
             IconButton(
               visualDensity: VisualDensity.compact,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
               onPressed: () => setState(() => _expanded = !_expanded),
-              icon: Icon(_expanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down, size: 20),
+              icon: Icon(
+                _expanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                size: 22,
+              ),
             ),
           ]),
-          const SizedBox(height: 4),
-          Text(s.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 6),
-          Wrap(spacing: 6, children: [
-            _chip('${s.radiusM.round()}m radius (${dist == null ? '--' : fmtKm(dist)})',
-                cs.surfaceContainerHighest, cs.onSurface,
-                icon: Icons.gps_fixed),
-          ]),
-          const SizedBox(height: 6),
-          Text('Target: ₹${s.target.round()}', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12.5)),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
+          Text(
+            s.name,
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, letterSpacing: -0.3),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              _chip(
+                '${s.radiusM.round()}m radius (${dist == null ? '--' : fmtKm(dist)})',
+                isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+                icon: Icons.gps_fixed_rounded,
+              ),
+              const SizedBox(width: 8),
+              _chip(
+                'Target: ₹${s.target.round()}',
+                kAmber.withValues(alpha: 0.12),
+                const Color(0xFFD97706),
+                icon: Icons.payments_outlined,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Expanded(
-              child: _box(cs.surfaceContainerHighest, [
-                _iconLine(Icons.local_shipping, 'Drive: ', widget.number == 1 ? 'Start' : 'Next stop'),
-                const SizedBox(height: 4),
-                _iconLine(Icons.place_outlined, 'Trip: ',
+              child: _box(
+                isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                [
+                  _iconLine(Icons.near_me_outlined, 'Transit', widget.number == 1 ? 'Start point' : 'Next stop'),
+                  const SizedBox(height: 6),
+                  _iconLine(
+                    Icons.route_outlined,
+                    'Distance',
                     widget.legMeters == null ? '--' : fmtKm(widget.legMeters!),
-                    valueColor: kGreen, iconColor: kGreen),
-              ]),
+                    valueColor: kPrimary,
+                    iconColor: kPrimary,
+                  ),
+                ],
+              ),
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: _box(kGreen.withValues(alpha: 0.08), [
-                _dotLine(kGreen, 'IN: ', fmtTime(s.checkInAt)),
-                const SizedBox(height: 4),
-                _dotLine(kRed, 'OUT: ', fmtTime(s.checkOutAt)),
-                const SizedBox(height: 4),
-                _iconLine(Icons.schedule, 'Worked: ',
-                    s.worked == null ? '--' : fmtDuration(s.worked!)),
-              ]),
+              child: _box(
+                kGreen.withValues(alpha: isDark ? 0.08 : 0.06),
+                [
+                  _dotLine(kGreen, 'IN', fmtTime(s.checkInAt)),
+                  const SizedBox(height: 4),
+                  _dotLine(kRed, 'OUT', fmtTime(s.checkOutAt)),
+                  const SizedBox(height: 4),
+                  _iconLine(Icons.timer_outlined, 'Worked',
+                      s.worked == null ? '--' : fmtDuration(s.worked!)),
+                ],
+              ),
             ),
           ]),
-          const SizedBox(height: 10),
-          _box(kAmber.withValues(alpha: 0.10), [
-            const Row(children: [
-              Icon(Icons.edit_note, color: Color(0xFFB45309), size: 16),
-              SizedBox(width: 6),
-              Text('Visit Notes / Deal Info:',
-                  style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFFB45309), fontSize: 12)),
-            ]),
-            const SizedBox(height: 4),
-            Text(s.notes.isEmpty ? '"Scheduled visit"' : s.notes,
-                style: const TextStyle(fontStyle: FontStyle.italic, fontSize: 12)),
-          ]),
+          if (s.notes.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            _box(
+              kAmber.withValues(alpha: isDark ? 0.12 : 0.08),
+              [
+                const Row(children: [
+                  Icon(Icons.notes_rounded, color: Color(0xFFD97706), size: 15),
+                  SizedBox(width: 6),
+                  Text('Visit Brief / Instructions:',
+                      style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFFD97706), fontSize: 11.5)),
+                ]),
+                const SizedBox(height: 4),
+                Text(s.notes,
+                    style: TextStyle(
+                      fontStyle: FontStyle.italic,
+                      fontSize: 12,
+                      color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
+                    )),
+              ],
+            ),
+          ],
           if (_expanded) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             if (s.tasks.isNotEmpty) ...[
-              Text('Tasks ($doneTasks/${s.tasks.length})',
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-              const SizedBox(height: 6),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Checklist Tasks ($doneTasks/${s.tasks.length})',
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                  ),
+                  if (doneTasks == s.tasks.length && s.tasks.isNotEmpty)
+                    const Text('All completed ✓',
+                        style: TextStyle(color: kGreen, fontWeight: FontWeight.bold, fontSize: 11.5)),
+                ],
+              ),
+              const SizedBox(height: 8),
               for (var i = 0; i < s.tasks.length; i++) _taskTile(i, s.tasks[i], cs),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
             ],
             Row(children: [
-              Expanded(flex: 4, child: _mainButton()),
-              const SizedBox(width: 6),
+              Expanded(flex: 5, child: _mainButton()),
+              const SizedBox(width: 8),
               Expanded(
-                flex: 2,
+                flex: 3,
                 child: OutlinedButton.icon(
                   onPressed: _editNotes,
-                  icon: const Icon(Icons.edit_outlined, size: 16),
-                  label: const Text('Notes', style: TextStyle(fontSize: 12)),
+                  icon: const Icon(Icons.edit_note_rounded, size: 18),
+                  label: const Text('Notes', style: TextStyle(fontSize: 12.5)),
                 ),
               ),
-              const SizedBox(width: 6),
-              SizedBox(
-                width: 44,
-                child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(padding: EdgeInsets.zero),
+              const SizedBox(width: 8),
+              Container(
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: IconButton(
+                  tooltip: 'Google Maps Navigation',
                   onPressed: _navigate,
-                  child: const Icon(Icons.navigation_outlined, size: 18),
+                  icon: const Icon(Icons.navigation_rounded, color: kPrimary, size: 20),
                 ),
               ),
             ]),
@@ -249,13 +359,17 @@ class _StopCardState extends ConsumerState<StopCard> {
   Widget _mainButton() {
     if (s.isDone) {
       return FilledButton.icon(
-          onPressed: null, icon: const Icon(Icons.check_circle), label: const Text('Completed'));
+        style: FilledButton.styleFrom(backgroundColor: kGreen.withValues(alpha: 0.15)),
+        onPressed: null,
+        icon: const Icon(Icons.check_circle_rounded, color: kGreen),
+        label: const Text('Completed', style: TextStyle(color: kGreen, fontWeight: FontWeight.w800)),
+      );
     }
     if (s.isCheckedIn) {
       return FilledButton.icon(
         style: FilledButton.styleFrom(backgroundColor: kRed),
         onPressed: _checkOut,
-        icon: const Icon(Icons.logout),
+        icon: const Icon(Icons.logout_rounded),
         label: const Text('Check Out'),
       );
     }
@@ -263,9 +377,9 @@ class _StopCardState extends ConsumerState<StopCard> {
     final inside = d != null && d <= s.radiusM;
     return FilledButton.icon(
       onPressed: inside ? _checkIn : null,
-      icon: const Icon(Icons.login),
+      icon: const Icon(Icons.login_rounded),
       label: Text(
-        inside ? 'Check In' : (d == null ? 'Waiting for GPS…' : '${fmtKm(d)} away'),
+        inside ? 'Check In Now' : (d == null ? 'Acquiring GPS…' : '${fmtKm(d)} away'),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
@@ -273,30 +387,39 @@ class _StopCardState extends ConsumerState<StopCard> {
   }
 
   Widget _taskTile(int i, StopTask t, ColorScheme cs) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final busy = _uploading == i;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
+        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+        ),
       ),
       child: Row(children: [
         if (t.requirePhoto)
-          CircleAvatar(
-            backgroundColor: t.done ? kGreen.withValues(alpha: 0.15) : cs.primaryContainer,
-            child: Icon(Icons.photo_camera, color: t.done ? kGreen : cs.primary),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: t.done ? kGreen.withValues(alpha: 0.15) : kPrimary.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(Icons.photo_camera_rounded, color: t.done ? kGreen : kPrimary, size: 20),
           ),
-        if (t.requirePhoto) const SizedBox(width: 10),
+        if (t.requirePhoto) const SizedBox(width: 12),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(t.title,
                 style: TextStyle(
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
                     decoration: t.done ? TextDecoration.lineThrough : null)),
             if (t.requirePhoto)
-              Text(t.done ? '✓ Photo proof recorded' : 'Photo required • tap to capture',
-                  style: TextStyle(color: t.done ? kGreen : cs.primary, fontSize: 12)),
+              Text(t.done ? '✓ Verified photo recorded' : 'Photo verification required',
+                  style: TextStyle(color: t.done ? kGreen : kPrimary, fontSize: 11.5, fontWeight: FontWeight.w600)),
           ]),
         ),
         if (t.requirePhoto && t.photoUrl != null)
@@ -311,7 +434,7 @@ class _StopCardState extends ConsumerState<StopCard> {
                     alignment: Alignment.topRight,
                     children: [
                       ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(20),
                         child: InteractiveViewer(
                           panEnabled: true,
                           minScale: 0.5,
@@ -330,13 +453,13 @@ class _StopCardState extends ConsumerState<StopCard> {
               );
             },
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(10),
               child: Stack(
                 alignment: Alignment.bottomRight,
                 children: [
                   SizedBox(
-                    width: 48,
-                    height: 48,
+                    width: 44,
+                    height: 44,
                     child: _buildImageWidget(t.photoUrl!, fit: BoxFit.cover),
                   ),
                   Container(
@@ -357,52 +480,66 @@ class _StopCardState extends ConsumerState<StopCard> {
             child: busy
                 ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5))
                 : FilledButton.tonal(
-                    style: FilledButton.styleFrom(minimumSize: const Size(80, 40)),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(72, 38),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                    ),
                     onPressed: () => _capture(i),
-                    child: Text(t.done ? 'Retake' : 'Capture'),
+                    child: Text(t.done ? 'Retake' : 'Capture', style: const TextStyle(fontSize: 12)),
                   ),
           )
         else
-          Checkbox(value: t.done, shape: const CircleBorder(), onChanged: (v) => _toggle(i, v ?? false)),
+          Checkbox(
+            value: t.done,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+            activeColor: kPrimary,
+            onChanged: (v) => _toggle(i, v ?? false),
+          ),
       ]),
     );
   }
 
   Widget _chip(String text, Color bg, Color fg, {IconData? icon}) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
-        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(10)),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          if (icon != null) ...[Icon(icon, size: 12, color: fg), const SizedBox(width: 3)],
-          Text(text, style: TextStyle(color: fg, fontWeight: FontWeight.w600, fontSize: 11.5)),
+          if (icon != null) ...[Icon(icon, size: 13, color: fg), const SizedBox(width: 4)],
+          Text(text, style: TextStyle(color: fg, fontWeight: FontWeight.w700, fontSize: 11.5)),
         ]),
       );
 
   Widget _box(Color bg, List<Widget> children) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(10)),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
       );
 
   Widget _iconLine(IconData icon, String label, String value,
           {Color? valueColor, Color? iconColor}) =>
       Row(children: [
-        Icon(icon, size: 15, color: iconColor),
-        const SizedBox(width: 5),
-        Text(label, style: const TextStyle(fontSize: 12)),
+        Icon(icon, size: 14, color: iconColor ?? Theme.of(context).colorScheme.onSurfaceVariant),
+        const SizedBox(width: 6),
+        Text(label, style: TextStyle(fontSize: 11.5, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+        const SizedBox(width: 4),
         Flexible(
             child: Text(value,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: valueColor))),
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: valueColor))),
       ]);
 
   Widget _dotLine(Color c, String label, String value) => Row(children: [
-        Icon(Icons.circle, size: 8, color: c),
-        const SizedBox(width: 5),
-        Text(label, style: TextStyle(color: c, fontWeight: FontWeight.w700, fontSize: 12)),
+        Container(
+          width: 7,
+          height: 7,
+          decoration: BoxDecoration(color: c, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 6),
+        Text(label, style: TextStyle(color: c, fontWeight: FontWeight.w800, fontSize: 11.5)),
+        const SizedBox(width: 4),
         Flexible(
           child: Text(value,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: c, fontWeight: FontWeight.w700, fontSize: 12)),
+              style: TextStyle(color: c, fontWeight: FontWeight.w800, fontSize: 11.5)),
         ),
       ]);
 

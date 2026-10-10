@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'package:intl/intl.dart';
 
+import '../../core/theme.dart';
 import '../../providers.dart';
 
 class SendNotificationScreen extends ConsumerStatefulWidget {
@@ -46,8 +46,8 @@ class _SendNotificationScreenState extends ConsumerState<SendNotificationScreen>
       if (sendAt.isBefore(DateTime.now())) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Scheduled time must be in the future.'),
-            backgroundColor: Colors.orange,
+            content: Text('Scheduled delivery time must be in the future.'),
+            backgroundColor: kAmber,
           ),
         );
         return;
@@ -69,19 +69,19 @@ class _SendNotificationScreenState extends ConsumerState<SendNotificationScreen>
       setState(() => _sendLater = false);
 
       final msg = sendAt == null
-          ? 'Push notification queued and sent immediately!'
-          : 'Notification scheduled for ${DateFormat('EEE, d MMM yyyy • hh:mm a').format(sendAt)}!';
+          ? '✓ Push broadcast notification delivered immediately!'
+          : '✓ Notification scheduled for ${DateFormat('EEE, d MMM yyyy • hh:mm a').format(sendAt)}!';
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(msg),
-          backgroundColor: Colors.green,
+          backgroundColor: kGreen,
         ),
       );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Error: $e'), backgroundColor: kRed),
         );
       }
     } finally {
@@ -92,6 +92,7 @@ class _SendNotificationScreenState extends ConsumerState<SendNotificationScreen>
   @override
   Widget build(BuildContext context) {
     final workersAsync = ref.watch(workersProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -100,29 +101,56 @@ class _SendNotificationScreenState extends ConsumerState<SendNotificationScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.campaign_rounded, color: Theme.of(context).colorScheme.primary, size: 28),
-                        const SizedBox(width: 10),
-                        const Text(
-                          'Broadcast Push Notification',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Send custom announcements, alerts, or instructions directly to your workers\' phone lock screens.',
-                      style: TextStyle(fontSize: 13, color: Colors.grey),
-                    ),
-                  ],
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF131D2E) : Colors.white,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(
+                  color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: kPrimary.withValues(alpha: isDark ? 0.1 : 0.05),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF3B82F6), Color(0xFF6366F1)],
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Icon(Icons.campaign_rounded, color: Colors.white, size: 24),
+                      ),
+                      const SizedBox(width: 14),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Broadcast Alert Hub',
+                              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+                            ),
+                            Text(
+                              'Transmit instant field alerts or schedule reminders',
+                              style: TextStyle(fontSize: 12, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 16),
@@ -133,148 +161,176 @@ class _SendNotificationScreenState extends ConsumerState<SendNotificationScreen>
                 return DropdownButtonFormField<String?>(
                   initialValue: _selectedWorkerUid,
                   decoration: const InputDecoration(
-                    labelText: 'Target Audience',
-                    prefixIcon: Icon(Icons.people_alt_outlined),
-                    border: OutlineInputBorder(),
+                    labelText: 'Target Recipients',
+                    prefixIcon: Icon(Icons.people_alt_outlined, size: 20),
                   ),
                   items: [
                     const DropdownMenuItem<String?>(
                       value: null,
-                      child: Text('📢 All Workers (Broadcast)', style: TextStyle(fontWeight: FontWeight.bold)),
+                      child: Text('📢 Broadcast to All Field Workers', style: TextStyle(fontWeight: FontWeight.w800)),
                     ),
                     for (final w in list)
                       DropdownMenuItem<String?>(
                         value: w.uid,
-                        child: Text('👤 ${w.name}'),
+                        child: Text('👤 ${w.name}', style: const TextStyle(fontWeight: FontWeight.w600)),
                       ),
                   ],
                   onChanged: (val) => setState(() => _selectedWorkerUid = val),
                 );
               },
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
             TextFormField(
               controller: _titleCtrl,
               decoration: const InputDecoration(
-                labelText: 'Notification Title',
-                hintText: 'e.g. Urgent Meeting / Route Update',
-                prefixIcon: Icon(Icons.title),
-                border: OutlineInputBorder(),
+                labelText: 'Announcement Title',
+                hintText: 'e.g. Schedule Update or Priority Visit',
+                prefixIcon: Icon(Icons.title_rounded, size: 20),
               ),
               validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter a title' : null,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
             TextFormField(
               controller: _bodyCtrl,
               maxLines: 4,
               decoration: const InputDecoration(
-                labelText: 'Message Body',
-                hintText: 'Type your message details here...',
-                prefixIcon: Icon(Icons.message_outlined),
-                border: OutlineInputBorder(),
+                labelText: 'Message Content',
+                hintText: 'Detailed instructions for field staff...',
+                prefixIcon: Icon(Icons.message_outlined, size: 20),
                 alignLabelWithHint: true,
               ),
               validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter message content' : null,
             ),
-            const SizedBox(height: 16),
-            Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                side: BorderSide(color: Theme.of(context).dividerColor),
-                borderRadius: BorderRadius.circular(12),
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF131D2E) : Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+                ),
               ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: kAmber.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(Icons.schedule_rounded, size: 18, color: kAmber),
+                          ),
+                          const SizedBox(width: 10),
+                          const Text('Schedule Timed Delivery', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5)),
+                        ],
+                      ),
+                      Switch(
+                        value: _sendLater,
+                        activeColor: kPrimary,
+                        onChanged: (val) => setState(() => _sendLater = val),
+                      ),
+                    ],
+                  ),
+                  if (_sendLater) ...[
+                    const Divider(height: 20),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Row(
-                          children: [
-                            Icon(Icons.schedule, size: 20),
-                            SizedBox(width: 8),
-                            Text('Schedule Delivery Time', style: TextStyle(fontWeight: FontWeight.bold)),
-                          ],
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            icon: const Icon(Icons.calendar_month_outlined, size: 16),
+                            label: Text(
+                              DateFormat('d MMM yyyy').format(_scheduledDate),
+                              style: const TextStyle(fontSize: 12.5),
+                            ),
+                            onPressed: () async {
+                              final d = await showDatePicker(
+                                context: context,
+                                initialDate: _scheduledDate,
+                                firstDate: DateTime.now(),
+                                lastDate: DateTime.now().add(const Duration(days: 365)),
+                              );
+                              if (d != null) setState(() => _scheduledDate = d);
+                            },
+                          ),
                         ),
-                        Switch(
-                          value: _sendLater,
-                          onChanged: (val) => setState(() => _sendLater = val),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            icon: const Icon(Icons.access_time_rounded, size: 16),
+                            label: Text(
+                              _scheduledTime.format(context),
+                              style: const TextStyle(fontSize: 12.5),
+                            ),
+                            onPressed: () async {
+                              final t = await showTimePicker(
+                                context: context,
+                                initialTime: _scheduledTime,
+                              );
+                              if (t != null) setState(() => _scheduledTime = t);
+                            },
+                          ),
                         ),
                       ],
                     ),
-                    if (_sendLater) ...[
-                      const Divider(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              icon: const Icon(Icons.calendar_month, size: 18),
-                              label: Text(
-                                DateFormat('d MMM yyyy').format(_scheduledDate),
-                                style: const TextStyle(fontSize: 13),
-                              ),
-                              onPressed: () async {
-                                final d = await showDatePicker(
-                                  context: context,
-                                  initialDate: _scheduledDate,
-                                  firstDate: DateTime.now(),
-                                  lastDate: DateTime.now().add(const Duration(days: 365)),
-                                );
-                                if (d != null) setState(() => _scheduledDate = d);
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              icon: const Icon(Icons.access_time, size: 18),
-                              label: Text(
-                                _scheduledTime.format(context),
-                                style: const TextStyle(fontSize: 13),
-                              ),
-                              onPressed: () async {
-                                final t = await showTimePicker(
-                                  context: context,
-                                  initialTime: _scheduledTime,
-                                );
-                                if (t != null) setState(() => _scheduledTime = t);
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Will be delivered at ${DateFormat('d MMM, yyyy').format(_scheduledDate)} at ${_scheduledTime.format(context)}',
-                        style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.primary),
-                      ),
-                    ],
+                    const SizedBox(height: 8),
+                    Text(
+                      'Will be dispatched automatically on ${DateFormat('d MMM, yyyy').format(_scheduledDate)} at ${_scheduledTime.format(context)}',
+                      style: const TextStyle(fontSize: 12, color: kPrimary, fontWeight: FontWeight.w600),
+                    ),
                   ],
-                ),
+                ],
               ),
             ),
-            const SizedBox(height: 24),
-            FilledButton.icon(
-              style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(50),
-                padding: const EdgeInsets.symmetric(vertical: 14),
+            const SizedBox(height: 22),
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF3B82F6), Color(0xFF2563EB)],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: kPrimary.withValues(alpha: 0.35),
+                    blurRadius: 14,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
               ),
-              onPressed: _sending ? null : _send,
-              icon: _sending
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                    )
-                  : Icon(_sendLater ? Icons.schedule_send_rounded : Icons.send_rounded),
-              label: Text(
-                _sending
-                    ? 'Processing...'
-                    : _sendLater
-                        ? 'Schedule Notification'
-                        : 'Send Push Notification Now',
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  minimumSize: const Size.fromHeight(52),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                onPressed: _sending ? null : _send,
+                icon: _sending
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
+                    : Icon(_sendLater ? Icons.schedule_send_rounded : Icons.send_rounded, color: Colors.white, size: 18),
+                label: Text(
+                  _sending
+                      ? 'Transmitting Broadcast...'
+                      : _sendLater
+                          ? 'Schedule Transmission'
+                          : 'Transmit Push Alert Now',
+                  style: const TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                    letterSpacing: 0.2,
+                  ),
+                ),
               ),
             ),
           ],

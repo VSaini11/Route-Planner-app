@@ -2,7 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+
+import '../features/common/in_app_notification.dart';
 
 class NotificationService {
   NotificationService._();
@@ -58,10 +61,18 @@ class NotificationService {
 
             // Only show recent notifications
             if (time.isAfter(startTime)) {
+              final title = (d['title'] ?? 'New notification') as String;
+              final body = (d['body'] ?? '') as String;
               showLocal(
-                (d['title'] ?? 'New notification') as String,
-                (d['body'] ?? '') as String,
+                title,
+                body,
                 channel: _plans,
+              );
+              InAppNotificationBanner.show(
+                title: title,
+                message: body,
+                icon: Icons.campaign_rounded,
+                accentColor: const Color(0xFF3B82F6),
               );
             }
           }

@@ -8,11 +8,14 @@ import 'features/auth/login_screen.dart';
 import 'features/worker/worker_shell.dart';
 import 'providers.dart';
 
+import 'features/common/in_app_notification.dart';
+
 class FieldRouteApp extends StatelessWidget {
   const FieldRouteApp({super.key});
 
   @override
   Widget build(BuildContext context) => MaterialApp(
+        navigatorKey: InAppNotificationBanner.navigatorKey,
         title: 'FieldRoute',
         debugShowCheckedModeBanner: false,
         theme: buildTheme(Brightness.light),

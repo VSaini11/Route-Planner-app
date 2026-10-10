@@ -91,145 +91,182 @@ class _RouteMapCardState extends State<RouteMapCard> {
   }
 
   Color _stopColor(RouteStop s) =>
-      s.isDone ? kGreen : (s.isCheckedIn ? kBlue : kNavy);
+      s.isDone ? kGreen : (s.isCheckedIn ? kPrimary : kNavy);
 
   @override
   Widget build(BuildContext context) {
     final me = _me;
     final acc = widget.position?.accuracy ?? 0;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(24),
-      child: SizedBox(
-        height: 380,
-        child: Stack(children: [
-          FlutterMap(
-            mapController: _c,
-            options: MapOptions(
-              initialCenter: me ??
-                  (widget.stops.isNotEmpty
-                      ? LatLng(widget.stops.first.lat, widget.stops.first.lng)
-                      : const LatLng(28.6139, 77.2090)),
-              initialZoom: 12,
-              interactionOptions: const InteractionOptions(
-                  flags: InteractiveFlag.all & ~InteractiveFlag.rotate),
-              onMapReady: () {
-                _ready = true;
-                _lastKey = _key;
-                _fit();
-              },
-            ),
-            children: [
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.yourcompany.fieldroute',
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(22),
+        child: SizedBox(
+          height: 380,
+          child: Stack(children: [
+            FlutterMap(
+              mapController: _c,
+              options: MapOptions(
+                initialCenter: me ??
+                    (widget.stops.isNotEmpty
+                        ? LatLng(widget.stops.first.lat, widget.stops.first.lng)
+                        : const LatLng(28.6139, 77.2090)),
+                initialZoom: 12,
+                interactionOptions: const InteractionOptions(
+                    flags: InteractiveFlag.all & ~InteractiveFlag.rotate),
+                onMapReady: () {
+                  _ready = true;
+                  _lastKey = _key;
+                  _fit();
+                },
               ),
-              // Geofence circle around each stop, sized by the admin's radius.
-              CircleLayer(circles: [
-                for (final s in widget.stops)
-                  CircleMarker(
-                    point: LatLng(s.lat, s.lng),
-                    radius: s.radiusM,
-                    useRadiusInMeter: true,
-                    color: _stopColor(s).withValues(alpha: 0.15),
-                    borderColor: _stopColor(s),
-                    borderStrokeWidth: 2,
-                  ),
-              ]),
-              PolylineLayer(polylines: [
-                // Underlay casing line
-                Polyline(
-                  points: widget.geometry.points,
-                  strokeWidth: 7,
-                  color: kNavy.withValues(alpha: 0.8),
-                  borderStrokeWidth: 2,
-                  borderColor: Colors.white,
+              children: [
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.yourcompany.fieldroute',
                 ),
-                // Glowing active navigation route line
-                Polyline(
-                  points: widget.geometry.points,
-                  strokeWidth: 4.5,
-                  color: const Color(0xFF2563EB),
-                ),
-              ]),
-              MarkerLayer(markers: [
-                for (var i = 0; i < widget.stops.length; i++)
-                  Marker(
-                    point: LatLng(widget.stops[i].lat, widget.stops[i].lng),
-                    width: 40,
-                    height: 40,
-                    child: _Pin(number: i + 1, color: _stopColor(widget.stops[i])),
-                  ),
-              ]),
-              if (me != null) ...[
+                // Geofence circle around each stop, sized by the admin's radius.
                 CircleLayer(circles: [
-                  CircleMarker(
-                    point: me,
-                    radius: acc.clamp(5, 80),
-                    useRadiusInMeter: true,
-                    color: kBlue.withValues(alpha: 0.08),
-                    borderColor: kBlue.withValues(alpha: 0.3),
-                    borderStrokeWidth: 1,
+                  for (final s in widget.stops)
+                    CircleMarker(
+                      point: LatLng(s.lat, s.lng),
+                      radius: s.radiusM,
+                      useRadiusInMeter: true,
+                      color: _stopColor(s).withValues(alpha: 0.15),
+                      borderColor: _stopColor(s),
+                      borderStrokeWidth: 2,
+                    ),
+                ]),
+                PolylineLayer(polylines: [
+                  // Underlay casing line
+                  Polyline(
+                    points: widget.geometry.points,
+                    strokeWidth: 8,
+                    color: const Color(0xFF0F172A).withValues(alpha: 0.8),
+                    borderStrokeWidth: 2,
+                    borderColor: Colors.white,
+                  ),
+                  // Glowing active navigation route line
+                  Polyline(
+                    points: widget.geometry.points,
+                    strokeWidth: 5,
+                    color: const Color(0xFF3B82F6),
                   ),
                 ]),
                 MarkerLayer(markers: [
-                  Marker(
-                    point: me,
-                    width: 64,
-                    height: 64,
-                    child: RealisticCarMarker(heading: _getHeading(me), size: 64),
+                  for (var i = 0; i < widget.stops.length; i++)
+                    Marker(
+                      point: LatLng(widget.stops[i].lat, widget.stops[i].lng),
+                      width: 44,
+                      height: 44,
+                      child: _Pin(number: i + 1, color: _stopColor(widget.stops[i])),
+                    ),
+                ]),
+                if (me != null) ...[
+                  CircleLayer(circles: [
+                    CircleMarker(
+                      point: me,
+                      radius: acc.clamp(5, 80),
+                      useRadiusInMeter: true,
+                      color: kPrimary.withValues(alpha: 0.12),
+                      borderColor: kPrimary.withValues(alpha: 0.4),
+                      borderStrokeWidth: 1.5,
+                    ),
+                  ]),
+                  MarkerLayer(markers: [
+                    Marker(
+                      point: me,
+                      width: 64,
+                      height: 64,
+                      child: RealisticCarMarker(heading: _getHeading(me), size: 64),
+                    ),
+                  ]),
+                ],
+                const RichAttributionWidget(
+                  alignment: AttributionAlignment.bottomRight,
+                  attributions: [TextSourceAttribution('© OpenStreetMap contributors')],
+                ),
+              ],
+            ),
+            Positioned(
+              top: 14,
+              right: 14,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF0F172A).withValues(alpha: 0.9) : Colors.white.withValues(alpha: 0.9),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+                  ),
+                  boxShadow: const [
+                    BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 4)),
+                  ],
+                ),
+                child: Column(children: [
+                  IconButton(
+                    icon: const Icon(Icons.add_rounded, size: 20),
+                    onPressed: () => _zoom(1),
+                  ),
+                  Container(
+                    height: 1,
+                    width: 28,
+                    color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.remove_rounded, size: 20),
+                    onPressed: () => _zoom(-1),
                   ),
                 ]),
-              ],
-              const RichAttributionWidget(
-                alignment: AttributionAlignment.bottomRight,
-                attributions: [TextSourceAttribution('© OpenStreetMap contributors')],
               ),
-            ],
-          ),
-          Positioned(
-            top: 12,
-            right: 12,
-            child: Card(
-              child: Column(children: [
-                IconButton(icon: const Icon(Icons.add), onPressed: () => _zoom(1)),
-                const Divider(height: 1),
-                IconButton(icon: const Icon(Icons.remove), onPressed: () => _zoom(-1)),
+            ),
+            Positioned(
+              left: 14,
+              right: 14,
+              bottom: 24,
+              child: Row(children: [
+                Expanded(
+                  child: _MapButton(
+                    icon: Icons.directions_car_filled_rounded,
+                    label: 'Focus Vehicle',
+                    onTap: me == null || !_ready ? null : () => _c.move(me, 16),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _MapButton(
+                    icon: Icons.crop_free_rounded,
+                    label: 'Fit Route',
+                    onTap: _ready ? _fit : null,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _MapButton(
+                    icon: Icons.auto_awesome_rounded,
+                    label: 'AI Optimize',
+                    primary: true,
+                    onTap: widget.onOptimize,
+                  ),
+                ),
               ]),
             ),
-          ),
-          Positioned(
-            left: 12,
-            right: 12,
-            bottom: 28,
-            child: Row(children: [
-              Expanded(
-                child: _MapButton(
-                  icon: Icons.directions_car_filled,
-                  label: 'Focus Vehicle',
-                  onTap: me == null || !_ready ? null : () => _c.move(me, 16),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _MapButton(
-                  icon: Icons.near_me_outlined,
-                  label: 'Fit Route',
-                  onTap: _ready ? _fit : null,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _MapButton(
-                  icon: Icons.auto_awesome,
-                  label: 'Optimize',
-                  primary: true,
-                  onTap: widget.onOptimize,
-                ),
-              ),
-            ]),
-          ),
-        ]),
+          ]),
+        ),
       ),
     );
   }
@@ -243,19 +280,27 @@ class _MapButton extends StatelessWidget {
   const _MapButton({required this.icon, required this.label, this.primary = false, this.onTap});
 
   @override
-  Widget build(BuildContext context) => ElevatedButton.icon(
-        onPressed: onTap,
-        icon: Icon(icon, size: 18),
-        label: FittedBox(child: Text(label)),
-        style: ElevatedButton.styleFrom(
-          minimumSize: const Size(0, 46),
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          backgroundColor: primary ? kBlue : Colors.white,
-          foregroundColor: primary ? Colors.white : kNavy,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          textStyle: const TextStyle(fontWeight: FontWeight.w700),
-        ),
-      );
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return ElevatedButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon, size: 16),
+      label: FittedBox(child: Text(label)),
+      style: ElevatedButton.styleFrom(
+        minimumSize: const Size(0, 44),
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        backgroundColor: primary
+            ? kPrimary
+            : (isDark ? const Color(0xFF0F172A).withValues(alpha: 0.9) : Colors.white.withValues(alpha: 0.95)),
+        foregroundColor: primary ? Colors.white : (isDark ? Colors.white : kNavy),
+        elevation: 4,
+        shadowColor: Colors.black38,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11.5),
+      ),
+    );
+  }
 }
 
 class _Pin extends StatelessWidget {
@@ -270,25 +315,11 @@ class _Pin extends StatelessWidget {
           color: color,
           shape: BoxShape.circle,
           border: Border.all(color: Colors.white, width: 3),
-          boxShadow: const [BoxShadow(blurRadius: 6, color: Colors.black38)],
+          boxShadow: const [
+            BoxShadow(blurRadius: 8, color: Colors.black45, offset: Offset(0, 3)),
+          ],
         ),
         child: Text('$number',
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
-      );
-}
-
-/// The worker's live position (car icon).
-class _Car extends StatelessWidget {
-  const _Car();
-
-  @override
-  Widget build(BuildContext context) => Container(
-        decoration: BoxDecoration(
-          color: kNavy,
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white, width: 3),
-          boxShadow: const [BoxShadow(blurRadius: 8, color: Colors.black45)],
-        ),
-        child: const Icon(Icons.directions_car_filled, color: Colors.white, size: 26),
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 15)),
       );
 }

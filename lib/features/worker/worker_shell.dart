@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/geo.dart';
+import '../../core/theme.dart';
 import '../../data/models/route_plan.dart';
 import '../../providers.dart';
 import '../../services/notification_service.dart';
@@ -47,6 +48,8 @@ class _WorkerShellState extends ConsumerState<WorkerShell> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     // Tracking always follows TODAY's route, whatever date the screen is showing.
     final todayPlanAsync = ref.watch(routeProvider(dateKey(DateTime.now())));
     _todayPlan = todayPlanAsync.valueOrNull;
@@ -63,25 +66,46 @@ class _WorkerShellState extends ConsumerState<WorkerShell> {
 
     return Scaffold(
       body: SafeArea(
-        child: _tab == 0
-            ? MyRouteScreen(
-                permissionsOk: _permissionsOk,
-                onAskPermissions: () async {
-                  final ok = await PermissionGate.ensure(context);
-                  if (!mounted) return;
-                  setState(() => _permissionsOk = ok);
-                  _sync();
-                },
-              )
-            : const ProfileScreen(),
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          child: _tab == 0
+              ? MyRouteScreen(
+                  permissionsOk: _permissionsOk,
+                  onAskPermissions: () async {
+                    final ok = await PermissionGate.ensure(context);
+                    if (!mounted) return;
+                    setState(() => _permissionsOk = ok);
+                    _sync();
+                  },
+                )
+              : const ProfileScreen(),
+        ),
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _tab,
-        onDestinationSelected: (i) => setState(() => _tab = i),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.near_me_outlined), selectedIcon: Icon(Icons.near_me), label: 'My Route'),
-          NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
-        ],
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          border: Border(
+            top: BorderSide(
+              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+              width: 1,
+            ),
+          ),
+        ),
+        child: NavigationBar(
+          selectedIndex: _tab,
+          onDestinationSelected: (i) => setState(() => _tab = i),
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.near_me_outlined),
+              selectedIcon: Icon(Icons.near_me, color: kPrimary),
+              label: 'Route Dashboard',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.person_outline_rounded),
+              selectedIcon: Icon(Icons.person_rounded, color: kPrimary),
+              label: 'Operator Profile',
+            ),
+          ],
+        ),
       ),
     );
   }

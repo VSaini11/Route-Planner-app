@@ -34,31 +34,73 @@ class _MyRouteScreenState extends ConsumerState<MyRouteScreen> {
     final position = ref.watch(trackingProvider).position;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _DateBar(date: date),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           if (!widget.permissionsOk) ...[
-            Card(
-              color: Theme.of(context).colorScheme.errorContainer,
-              child: ListTile(
-                leading: const Icon(Icons.location_off),
-                title: const Text('Location permission needed'),
-                subtitle: const Text('Check-in and your live location will not work without it.'),
-                trailing: FilledButton(
-                  style: FilledButton.styleFrom(minimumSize: const Size(80, 40)),
-                  onPressed: widget.onAskPermissions,
-                  child: const Text('Allow'),
-                ),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: kRed.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: kRed.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: kRed.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.location_off_rounded, color: kRed, size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('GPS Permission Required',
+                            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kRed)),
+                        Text('Required for geofence check-ins & route tracking.',
+                            style: TextStyle(fontSize: 11.5)),
+                      ],
+                    ),
+                  ),
+                  FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: kRed,
+                      minimumSize: const Size(70, 36),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                    ),
+                    onPressed: widget.onAskPermissions,
+                    child: const Text('Allow', style: TextStyle(fontSize: 12)),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
           ],
           ...planAsync.when(
-            loading: () => [const Padding(padding: EdgeInsets.all(40), child: Center(child: CircularProgressIndicator()))],
-            error: (e, _) => [Center(child: Text('$e'))],
+            loading: () => [
+              const Padding(
+                padding: EdgeInsets.all(60),
+                child: Center(child: CircularProgressIndicator(strokeWidth: 2.5)),
+              )
+            ],
+            error: (e, _) => [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: kRed.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text('Error: $e', style: const TextStyle(color: kRed)),
+              )
+            ],
             data: (plan) => plan == null ? [_empty(context)] : _content(context, plan, position),
           ),
         ],
@@ -67,16 +109,27 @@ class _MyRouteScreenState extends ConsumerState<MyRouteScreen> {
   }
 
   Widget _empty(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 60),
+        padding: const EdgeInsets.symmetric(vertical: 80),
         child: Column(children: [
-          Icon(Icons.route_outlined, size: 72, color: Theme.of(context).colorScheme.outline),
-          const SizedBox(height: 12),
-          const Text('No route planned for this date', style: TextStyle(fontSize: 18)),
-          const Text('You will get a notification when your manager assigns one.'),
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.alt_route_rounded, size: 48, color: Theme.of(context).colorScheme.primary),
+          ),
+          const SizedBox(height: 16),
+          const Text('No Route Assigned', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 6),
+          Text('You will receive a real-time notification once dispatched.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13)),
         ]),
       );
 
   List<Widget> _content(BuildContext context, RoutePlan plan, Position? position) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final stops = ref.watch(stopsProvider(plan.id)).valueOrNull ?? <RouteStop>[];
     final pointsWithMe = <LatLng>[
       if (position != null) LatLng(position.latitude, position.longitude),
@@ -115,38 +168,58 @@ class _MyRouteScreenState extends ConsumerState<MyRouteScreen> {
           onOptimize: () => _optimize(plan, stops, position),
         ),
       if (_showMap && stops.isNotEmpty) const SizedBox(height: 14),
+      SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(children: [
+          _FilterPill('All (${stops.length})', _filter == 'all', () => setState(() => _filter = 'all')),
+          const SizedBox(width: 8),
+          _FilterPill('Pending (${stops.length - doneCount})', _filter == 'pending',
+              () => setState(() => _filter = 'pending')),
+          const SizedBox(width: 8),
+          _FilterPill('Done ($doneCount)', _filter == 'done', () => setState(() => _filter = 'done')),
+          const SizedBox(width: 14),
+          OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(0, 36),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+            ),
+            onPressed: () => setState(() => _showMap = !_showMap),
+            icon: Icon(_showMap ? Icons.visibility_off_outlined : Icons.map_outlined, size: 16),
+            label: Text(_showMap ? 'Hide Map' : 'Show Map', style: const TextStyle(fontSize: 12)),
+          ),
+        ]),
+      ),
+      const SizedBox(height: 14),
       Row(children: [
-        _FilterChip('All (${stops.length})', _filter == 'all', () => setState(() => _filter = 'all')),
+        Expanded(child: _Stat(Icons.route_rounded, kPrimary, 'TOTAL ROUTE', fmtKm(geo.totalMeters))),
         const SizedBox(width: 8),
-        _FilterChip('Pending (${stops.length - doneCount})', _filter == 'pending',
-            () => setState(() => _filter = 'pending')),
-        const SizedBox(width: 8),
-        _FilterChip('Done ($doneCount)', _filter == 'done', () => setState(() => _filter = 'done')),
-        const Spacer(),
-        TextButton.icon(
-          onPressed: () => setState(() => _showMap = !_showMap),
-          icon: Icon(_showMap ? Icons.visibility_off : Icons.map_outlined, size: 18),
-          label: Text(_showMap ? 'Hide Map' : 'Show Map'),
-        ),
-      ]),
-      const SizedBox(height: 12),
-      Row(children: [
-        Expanded(child: _Stat(Icons.map_outlined, kBlue, 'TRIP TOTAL', fmtKm(geo.totalMeters))),
-        const SizedBox(width: 8),
-        Expanded(child: _Stat(Icons.check_circle_outline, kGreen, 'COMPLETED', '$doneCount/${stops.length} ($pct%)')),
+        Expanded(child: _Stat(Icons.task_alt_rounded, kGreen, 'PROGRESS', '$doneCount/${stops.length} ($pct%)')),
         const SizedBox(width: 8),
         Expanded(child: _Stat(Icons.local_shipping_outlined, kAmber, 'REMAINING', fmtKm(remaining))),
       ]),
       const SizedBox(height: 20),
-      Text('ASSIGNED ROUTE TIMELINE',
-          style: TextStyle(
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.5,
-              color: Theme.of(context).colorScheme.onSurfaceVariant)),
-      const SizedBox(height: 10),
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text('ITINERARY TIMELINE',
+              style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 12,
+                  letterSpacing: 0.8,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant)),
+          Text('${shown.length} STOPS',
+              style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 11,
+                  color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8))),
+        ],
+      ),
+      const SizedBox(height: 12),
       for (final s in shown)
         _TimelineRow(
           number: stops.indexOf(s) + 1,
+          isDone: s.isDone,
+          isCheckedIn: s.isCheckedIn,
           isLast: identical(s, shown.last),
           child: StopCard(
             key: ValueKey(s.id),
@@ -160,14 +233,12 @@ class _MyRouteScreenState extends ConsumerState<MyRouteScreen> {
     ];
   }
 
-  /// Re-orders the stops that are still pending using nearest-neighbour from the
-  /// worker's position (or the last finished stop). Finished stops keep their place.
   Future<void> _optimize(RoutePlan plan, List<RouteStop> stops, Position? position) async {
     final locked = stops.where((s) => s.isDone || s.isCheckedIn).toList();
     final pending = stops.where((s) => s.status == 'pending').toList();
     if (pending.length < 2) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Nothing to optimise')));
+          .showSnackBar(const SnackBar(content: Text('Nothing to optimize')));
       return;
     }
     final LatLng start = locked.isNotEmpty
@@ -180,7 +251,7 @@ class _MyRouteScreenState extends ConsumerState<MyRouteScreen> {
     await ref.read(routeRepoProvider).updateOrder(plan.id, ids);
     if (mounted) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Route optimised (shortest next stop first)')));
+          .showSnackBar(const SnackBar(content: Text('Route optimized with AI sequence ✓')));
     }
   }
 }
@@ -195,58 +266,123 @@ class _DateBar extends ConsumerWidget {
     final isToday = dateKey(date) == dateKey(today);
     final isTomorrow = dateKey(date) == dateKey(today.add(const Duration(days: 1)));
     final notifier = ref.read(selectedDateProvider.notifier);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('SCHEDULED ROUTE PLAN',
-              style: TextStyle(
-                  fontSize: 12,
-                  letterSpacing: 0.6,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant)),
-          const SizedBox(height: 2),
-          Text(DateFormat('yyyy-MM-dd').format(date),
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 10),
-          Wrap(spacing: 8, children: [
-            ChoiceChip(
-                label: const Text('Today'),
-                selected: isToday,
-                onSelected: (_) => notifier.state = DateTime.now()),
-            ChoiceChip(
-                label: const Text('Tomorrow'),
-                selected: isTomorrow,
-                onSelected: (_) => notifier.state = DateTime.now().add(const Duration(days: 1))),
-            ActionChip(
-              avatar: const Icon(Icons.calendar_month, size: 18),
-              label: const Text('Calendar'),
-              onPressed: () async {
-                final d = await showDatePicker(
-                  context: context,
-                  initialDate: date,
-                  firstDate: DateTime.now().subtract(const Duration(days: 365)),
-                  lastDate: DateTime.now().add(const Duration(days: 365)),
-                );
-                if (d != null) notifier.state = d;
-              },
-            ),
-          ]),
-        ]),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF131D2E) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+        ),
       ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('ASSIGNED SHIFT DATE',
+                style: TextStyle(
+                    fontSize: 11,
+                    letterSpacing: 0.8,
+                    fontWeight: FontWeight.w800,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant)),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: kPrimary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                isToday ? 'TODAY' : DateFormat('EEE').format(date).toUpperCase(),
+                style: const TextStyle(color: kPrimary, fontWeight: FontWeight.w900, fontSize: 10.5),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          DateFormat('EEEE, d MMMM yyyy').format(date),
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: -0.3),
+        ),
+        const SizedBox(height: 12),
+        Wrap(spacing: 8, children: [
+          _DateChip(label: 'Today', selected: isToday, onSelected: () => notifier.state = DateTime.now()),
+          _DateChip(
+              label: 'Tomorrow',
+              selected: isTomorrow,
+              onSelected: () => notifier.state = DateTime.now().add(const Duration(days: 1))),
+          ActionChip(
+            avatar: const Icon(Icons.calendar_month_outlined, size: 16),
+            label: const Text('Calendar Picker', style: TextStyle(fontSize: 12)),
+            onPressed: () async {
+              final d = await showDatePicker(
+                context: context,
+                initialDate: date,
+                firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                lastDate: DateTime.now().add(const Duration(days: 365)),
+              );
+              if (d != null) notifier.state = d;
+            },
+          ),
+        ]),
+      ]),
     );
   }
 }
 
-class _FilterChip extends StatelessWidget {
+class _DateChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onSelected;
+
+  const _DateChip({required this.label, required this.selected, required this.onSelected});
+
+  @override
+  Widget build(BuildContext context) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => onSelected(),
+    );
+  }
+}
+
+class _FilterPill extends StatelessWidget {
   final String label;
   final bool selected;
   final VoidCallback onTap;
-  const _FilterChip(this.label, this.selected, this.onTap);
+  const _FilterPill(this.label, this.selected, this.onTap);
 
   @override
-  Widget build(BuildContext context) =>
-      ChoiceChip(label: Text(label), selected: selected, onSelected: (_) => onTap());
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected
+              ? kPrimary
+              : (isDark ? const Color(0xFF131D2E) : Colors.white),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? kPrimary : (isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0)),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+            fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+            fontSize: 12.5,
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _Stat extends StatelessWidget {
@@ -257,58 +393,115 @@ class _Stat extends StatelessWidget {
   const _Stat(this.icon, this.color, this.label, this.value);
 
   @override
-  Widget build(BuildContext context) => Card(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Icon(icon, color: color, size: 18),
-            const SizedBox(height: 4),
-            Text(label,
-                style: TextStyle(
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.3,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant)),
-            const SizedBox(height: 2),
-            FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(value, style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800))),
-          ]),
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF131D2E) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
         ),
-      );
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.14),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: color, size: 16),
+        ),
+        const SizedBox(height: 8),
+        Text(label,
+            style: TextStyle(
+                fontSize: 9.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.4,
+                color: Theme.of(context).colorScheme.onSurfaceVariant)),
+        const SizedBox(height: 2),
+        FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(value, style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w900))),
+      ]),
+    );
+  }
 }
 
 class _TimelineRow extends StatelessWidget {
   final int number;
+  final bool isDone;
+  final bool isCheckedIn;
   final bool isLast;
   final Widget child;
-  const _TimelineRow({required this.number, required this.isLast, required this.child});
+  const _TimelineRow({
+    required this.number,
+    required this.isDone,
+    required this.isCheckedIn,
+    required this.isLast,
+    required this.child,
+  });
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: IntrinsicHeight(
-          child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            SizedBox(
-              width: 40,
-              child: Column(children: [
-                CircleAvatar(
-                  radius: 15,
-                  backgroundColor: kNavy,
-                  child: Text('$number',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
-                ),
-                if (!isLast)
-                  Expanded(
-                    child: Container(
-                        width: 2,
-                        margin: const EdgeInsets.symmetric(vertical: 4),
-                        color: Theme.of(context).colorScheme.outlineVariant),
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final color = isDone ? kGreen : (isCheckedIn ? kPrimary : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)));
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: IntrinsicHeight(
+        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          SizedBox(
+            width: 36,
+            child: Column(children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: isDone
+                        ? [kGreen, const Color(0xFF059669)]
+                        : isCheckedIn
+                            ? [kPrimary, const Color(0xFF2563EB)]
+                            : [isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0), isDark ? const Color(0xFF0F172A) : const Color(0xFFCBD5E1)],
                   ),
-              ]),
-            ),
-            Expanded(child: child),
-          ]),
-        ),
-      );
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    if (isDone || isCheckedIn)
+                      BoxShadow(
+                        color: (isDone ? kGreen : kPrimary).withValues(alpha: 0.4),
+                        blurRadius: 6,
+                      ),
+                  ],
+                ),
+                child: Center(
+                  child: isDone
+                      ? const Icon(Icons.check, color: Colors.white, size: 16)
+                      : Text(
+                          '$number',
+                          style: TextStyle(
+                            color: isCheckedIn ? Colors.white : (isDark ? Colors.white70 : const Color(0xFF475569)),
+                            fontWeight: FontWeight.w900,
+                            fontSize: 12,
+                          ),
+                        ),
+                ),
+              ),
+              if (!isLast)
+                Expanded(
+                  child: Container(
+                    width: 2,
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    color: color,
+                  ),
+                ),
+            ]),
+          ),
+          const SizedBox(width: 8),
+          Expanded(child: child),
+        ]),
+      ),
+    );
+  }
 }

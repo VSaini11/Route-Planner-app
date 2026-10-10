@@ -63,3 +63,9 @@ firebase-debug.*.log
 
 # Widget Preview
 .widget_preview/
+
+# Firebase configuration (Client keys)
+lib/firebase_options.dart
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+
